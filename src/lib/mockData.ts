@@ -30,7 +30,7 @@ export const mockStores: Store[] = [
 		depositFee: "無料",
 		withdrawalFee: "無料",
 		amenities: ["初心者講習あり", "ドリンク飲み放題", "Wi-Fi完備"],
-		imageUrl: "https://via.placeholder.com/400x300?text=Poker+Spot+Shibuya",
+		imageUrl: "https://plus.unsplash.com/premium_photo-1694004710242-c90943f0c280",
 		description:
 			"渋谷駅から徒歩5分！初心者から上級者まで楽しめるアットホームなポーカースポットです。定期的にトーナメントも開催中！",
 		area: "渋谷",
@@ -71,7 +71,7 @@ export const mockStores: Store[] = [
 		depositFee: "チップ額の3%",
 		withdrawalFee: "チップ額の2%",
 		amenities: ["英語対応", "プライベートテーブル", "高額ゲーム", "予約優先"],
-		imageUrl: "https://via.placeholder.com/400x300?text=Poker+Club+Roppongi",
+		imageUrl: "https://plus.unsplash.com/premium_photo-1719017472059-8d1d0ab3cba5",
 		description:
 			"六本木の中心地に位置する高級ポーカークラブ。国際的な雰囲気で、海外からのゲストも多数。",
 		area: "六本木",
@@ -94,7 +94,7 @@ export const mockStores: Store[] = [
 			"チャージャー完備",
 			"女性割引あり",
 		],
-		imageUrl: "https://via.placeholder.com/400x300?text=Ace+Poker+Ikebukuro",
+		imageUrl: "https://plus.unsplash.com/premium_photo-1670007097576-0af87c2dd32e",
 		description:
 			"池袋駅東口から徒歩3分。リーズナブルな価格で気軽に楽しめるアットホームな雰囲気が魅力です。",
 		area: "池袋",
@@ -117,7 +117,7 @@ export const mockStores: Store[] = [
 			"初心者講習毎日開催",
 			"ポイントカード",
 		],
-		imageUrl: "https://via.placeholder.com/400x300?text=Royal+Flush+Akihabara",
+		imageUrl: "https://images.unsplash.com/photo-1511193311914-0346f16efe90",
 		description:
 			"秋葉原の中心部にあるポーカールーム。毎日様々なトーナメントを開催しており、常連から新規のお客様まで楽しめる空間です。",
 		area: "秋葉原",
@@ -140,7 +140,7 @@ export const mockStores: Store[] = [
 			"VIPサービス",
 			"マッチポット",
 		],
-		imageUrl: "https://via.placeholder.com/400x300?text=Poker+House+Ginza",
+		imageUrl: "https://images.unsplash.com/photo-1561631606-861551ea3ee3",
 		description:
 			"銀座の一等地に位置する高級ポーカールーム。落ち着いた雰囲気の中で本格的なポーカーが楽しめます。接待にも最適。",
 		area: "銀座",
