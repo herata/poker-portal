@@ -53,7 +53,7 @@ export const mockStores: Store[] = [
 			"VIPルームあり",
 			"ドレスコードあり",
 		],
-		imageUrl: "https://via.placeholder.com/400x300?text=Casino+Lounge+Shinjuku",
+		imageUrl: "https://images.unsplash.com/photo-1732613243555-85574f6ebfbf",
 		description:
 			"新宿の夜景を一望できるラグジュアリーな空間で、本格的なポーカーをお楽しみいただけます。",
 		area: "新宿",
