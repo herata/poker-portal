@@ -1,67 +1,163 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`c3`](https://developers.cloudflare.com/pages/get-started/c3).
+# PokerPortal - アミューズメントポーカー情報ポータル
 
-## Getting Started
+PokerPortalは、日本全国のアミューズメントポーカー会場情報を一覧で確認できるWebサービスです。Next.jsとTailwind CSSを使用して開発されており、Cloudflare Pagesにデプロイされるように設計されています。
 
-First, run the development server:
+![Current Date: 2025年4月26日]
 
+## プロジェクト概要
+
+### 主な機能
+- **会場検索**: エリアや条件から会場を簡単に検索できます
+- **会場詳細表示**: 各会場の営業時間、料金、設備などの詳細情報を確認できます
+- **近くの会場検索**: 位置情報を使って近くのポーカー会場を探せます
+- **お気に入り登録**: 気になる会場をお気に入りに登録して後で確認できます
+- **訪問履歴**: 訪れた会場が記録され、一目で分かります
+
+### 技術スタック
+- **フロントエンド**: Next.js 15.3.0, React 19
+- **スタイリング**: Tailwind CSS 4
+- **コンポーネント**: Radixベースのカスタムコンポーネント
+- **デプロイ**: Cloudflare Pages
+
+## 開発環境のセットアップ
+
+### 前提条件
+- Node.js 18.x 以上
+- npm, yarn, pnpmまたはbunのいずれか
+
+### インストール手順
+
+1. リポジトリをクローンします:
+```bash
+git clone https://github.com/yourusername/poker-portal.git
+cd poker-portal
+```
+
+2. 依存関係をインストールします:
+```bash
+npm install
+# または
+yarn install
+# または
+pnpm install
+# または
+bun install
+```
+
+3. 開発サーバーを起動します:
 ```bash
 npm run dev
-# or
+# または
 yarn dev
-# or
+# または
 pnpm dev
-# or
+# または
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. ブラウザで[http://localhost:3000](http://localhost:3000)を開くとアプリケーションが表示されます。
 
-## Cloudflare integration
+## ビルドとデプロイ
 
-Besides the `dev` script mentioned above `c3` has added a few extra scripts that allow you to integrate the application with the [Cloudflare Pages](https://pages.cloudflare.com/) environment, these are:
-  - `pages:build` to build the application for Pages using the [`@cloudflare/next-on-pages`](https://github.com/cloudflare/next-on-pages) CLI
-  - `preview` to locally preview your Pages application using the [Wrangler](https://developers.cloudflare.com/workers/wrangler/) CLI
-  - `deploy` to deploy your Pages application using the [Wrangler](https://developers.cloudflare.com/workers/wrangler/) CLI
+### ローカルビルド
+```bash
+npm run build
+# または
+yarn build
+# または
+pnpm build
+# または
+bun build
+```
 
-> __Note:__ while the `dev` script is optimal for local development you should preview your Pages application as well (periodically or before deployments) in order to make sure that it can properly work in the Pages environment (for more details see the [`@cloudflare/next-on-pages` recommended workflow](https://github.com/cloudflare/next-on-pages/blob/main/internal-packages/next-dev/README.md#recommended-development-workflow))
+### Cloudflareへのデプロイ
+このプロジェクトはCloudflare Pagesへのデプロイを前提に設計されています。
 
-### Bindings
+1. Cloudflare Pagesのビルド:
+```bash
+npm run pages:build
+# または
+yarn pages:build
+# または
+pnpm pages:build
+# または
+bun pages:build
+```
 
-Cloudflare [Bindings](https://developers.cloudflare.com/pages/functions/bindings/) are what allows you to interact with resources available in the Cloudflare Platform.
+2. ローカルでのプレビュー:
+```bash
+npm run preview
+# または
+yarn preview
+# または
+pnpm preview
+# または
+bun preview
+```
 
-You can use bindings during development, when previewing locally your application and of course in the deployed application:
+3. Cloudflare Pagesへのデプロイ:
+```bash
+npm run deploy
+# または
+yarn deploy
+# または
+pnpm deploy
+# または
+bun deploy
+```
 
-- To use bindings in dev mode you need to define them in the `next.config.js` file under `setupDevBindings`, this mode uses the `next-dev` `@cloudflare/next-on-pages` submodule. For more details see its [documentation](https://github.com/cloudflare/next-on-pages/blob/05b6256/internal-packages/next-dev/README.md).
+## プロジェクトの構成
 
-- To use bindings in the preview mode you need to add them to the `pages:preview` script accordingly to the `wrangler pages dev` command. For more details see its [documentation](https://developers.cloudflare.com/workers/wrangler/commands/#dev-1) or the [Pages Bindings documentation](https://developers.cloudflare.com/pages/functions/bindings/).
+主要なディレクトリとファイルの構成:
 
-- To use bindings in the deployed application you will need to configure them in the Cloudflare [dashboard](https://dash.cloudflare.com/). For more details see the  [Pages Bindings documentation](https://developers.cloudflare.com/pages/functions/bindings/).
+```
+src/
+  app/                   # アプリケーションのルート
+    page.tsx             # ホームページ
+    layout.tsx           # 共通レイアウト
+    stores/              # 会場一覧・詳細ページ
+      page.tsx           # 会場一覧ページ
+      [id]/page.tsx      # 会場詳細ページ
+    nearby/              # 近くの会場ページ
+      page.tsx
+    favorites/           # お気に入りページ 
+      page.tsx
+  components/            # UIコンポーネント
+    ui/                  # 基本UIコンポーネント
+    NearbyStoreMap.tsx   # 近くの会場マップコンポーネント
+  lib/                   # ユーティリティ関数など
+```
 
-#### KV Example
+## 開発用コマンド
 
-`c3` has added for you an example showing how you can use a KV binding.
+| コマンド | 説明 |
+|----------|------|
+| `npm run dev` | 開発サーバーを起動（Turbopack使用） |
+| `npm run build` | プロジェクトをビルド |
+| `npm run start` | ビルドしたプロジェクトを起動 |
+| `npm run lint` | コードのリント |
+| `npm run fix` | Biomeを使用したコードフォーマット |
+| `npm run preview` | CloudflareでのPagesアプリをローカルでプレビュー |
+| `npm run deploy` | Cloudflare Pagesにデプロイ |
 
-In order to enable the example:
-- Search for javascript/typescript lines containing the following comment:
-  ```ts
-  // KV Example:
-  ```
-  and uncomment the commented lines below it (also uncomment the relevant imports).
-- In the `wrangler.jsonc` file add the following configuration line:
-  ```
-  "kv_namespaces": [{ "binding": "MY_KV_NAMESPACE", "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }],
-  ```
-- If you're using TypeScript run the `cf-typegen` script to update the `env.d.ts` file:
-  ```bash
-  npm run cf-typegen
-  # or
-  yarn cf-typegen
-  # or
-  pnpm cf-typegen
-  # or
-  bun cf-typegen
-  ```
+## Cloudflareとの連携
 
-After doing this you can run the `dev` or `preview` script and visit the `/api/hello` route to see the example in action.
+このプロジェクトはCloudflare Pagesに最適化されています。[Cloudflare Pages](https://pages.cloudflare.com/)環境とアプリケーションを連携させるための追加スクリプトが提供されています：
 
-Finally, if you also want to see the example work in the deployed application make sure to add a `MY_KV_NAMESPACE` binding to your Pages application in its [dashboard kv bindings settings section](https://dash.cloudflare.com/?to=/:account/pages/view/:pages-project/settings/functions#kv_namespace_bindings_section). After having configured it make sure to re-deploy your application.
+- `pages:build` - [`@cloudflare/next-on-pages`](https://github.com/cloudflare/next-on-pages) CLIを使用してPagesのアプリケーションをビルド
+- `preview` - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) CLIを使用してPagesアプリケーションをローカルでプレビュー
+- `deploy` - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) CLIを使用してPagesアプリケーションをデプロイ
+
+> __注意:__ `dev`スクリプトはローカル開発に最適ですが、Pagesアプリケーションを定期的に（または本番環境へのデプロイ前に）プレビューして、Pages環境で正常に動作することを確認してください。
+
+## 貢献方法
+
+1. このリポジトリをフォークします
+2. 新しいブランチを作成します (`git checkout -b feature/amazing-feature`)
+3. 変更をコミットします (`git commit -m 'Add some amazing feature'`)
+4. ブランチにプッシュします (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成します
+
+## ライセンス
+
+[MIT License](LICENSE)
