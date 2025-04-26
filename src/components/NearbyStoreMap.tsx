@@ -1,6 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import {
+	APIProvider,
+	InfoWindow,
+	AdvancedMarker,
+	Map as GoogleMap,
+	Pin,
+	useAdvancedMarkerRef
+} from "@vis.gl/react-google-maps";
+import React, { useRef, useState } from "react";
 
 // Define types for props
 type Store = {
@@ -19,12 +27,234 @@ type NearbyStoreMapProps = {
 	stores: Store[];
 };
 
+// Map container style
+const containerStyle = {
+	width: "100%",
+	height: "100%",
+};
+
 export default function NearbyStoreMap({
 	currentLocation,
 	stores,
 }: NearbyStoreMapProps) {
 	const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+	const mapRef = useRef<google.maps.Map | null>(null);
+	const [mapLoaded, setMapLoaded] = useState(false);
+	const [mapError, setMapError] = useState<string | null>(null);
+	const [errorDetails, setErrorDetails] = useState<string | null>(null);
+	const [initialMapSetupDone, setInitialMapSetupDone] = useState(false);
+	
+	// Try to use the development API key and Map ID if in development mode
+	const isDev = process.env.NODE_ENV === "development";
+	const apiKey =
+		process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+		(isDev ? process.env.NEXT_PUBLIC_GOOGLE_MAPS_DEV_API_KEY : "") ||
+		"";
+	const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID || "";
 
+	// Set appropriate zoom level based on nearest store
+	const calculateZoomLevel = () => {
+		if (stores.length === 0) return 14;
+
+		let nearestDistance = Number.MAX_VALUE;
+		for (const store of stores) {
+			const distance = calculateDistance(
+				currentLocation.lat,
+				currentLocation.lng,
+				store.lat,
+				store.lng,
+			);
+			if (distance < nearestDistance) {
+				nearestDistance = distance;
+			}
+		}
+
+		// Set zoom level based on distance to nearest store
+		if (nearestDistance > 10) return 10; // Far away: zoom out
+		if (nearestDistance > 5) return 11;
+		if (nearestDistance > 2) return 12;
+		if (nearestDistance > 1) return 13;
+		return 14; // Close by: zoom in
+	};
+
+	// Modified map camera handler to only set up the map once
+	const handleMapCamera = (event: { map: google.maps.Map }) => {
+		if (!mapLoaded && event.map) {
+			mapRef.current = event.map;
+			setMapLoaded(true);
+			
+			// Only fit bounds and center the first time the map loads
+			if (!initialMapSetupDone && stores.length > 1) {
+				const bounds = new google.maps.LatLngBounds();
+				bounds.extend({ lat: currentLocation.lat, lng: currentLocation.lng });
+				for (const store of stores) {
+					bounds.extend({ lat: store.lat, lng: store.lng });
+				}
+				event.map.fitBounds(bounds);
+				setInitialMapSetupDone(true);
+			}
+		}
+	};
+
+	const handleMapError = (error: unknown) => {
+		console.error("Google Maps API error:", error);
+
+		// Check for specific error types
+		if (error instanceof Error) {
+			if (error.message?.includes("ApiTargetBlockedMapError")) {
+				setMapError(
+					"APIキーに制限が設定されています。開発環境での使用が制限されている可能性があります。",
+				);
+				setErrorDetails(
+					"APIキーがドメイン制限されており、localhost/開発環境では使用できません。開発用APIキーを設定するか、制限を緩和してください。",
+				);
+			} else if (error.message?.includes("Map ID")) {
+				setMapError("Map IDが設定されていないか、無効です。");
+				setErrorDetails(
+					"高度なマーカーを使用するためには、有効なMap IDが必要です。",
+				);
+			} else {
+				setMapError(
+					"地図の読み込みに失敗しました。APIキーを確認してください。",
+				);
+			}
+		} else {
+			setMapError("地図の読み込みに失敗しました。APIキーを確認してください。");
+		}
+	};
+
+	// If we have no API key or there was an error, use the mock map instead
+	if (!apiKey || mapError) {
+		return (
+			<MockMap
+				currentLocation={currentLocation}
+				stores={stores}
+				selectedStore={selectedStore}
+				setSelectedStore={setSelectedStore}
+				errorMessage={mapError}
+				errorDetails={errorDetails}
+			/>
+		);
+	}
+
+	return (
+		<APIProvider apiKey={apiKey} onError={handleMapError}>
+			<div className="relative w-full h-full">
+				<GoogleMap
+					style={containerStyle}
+					center={initialMapSetupDone ? undefined : currentLocation}
+					zoom={initialMapSetupDone ? undefined : calculateZoomLevel()}
+					defaultZoom={14}
+					defaultCenter={currentLocation}
+					onCameraChanged={handleMapCamera}
+					fullscreenControl={false}
+					mapTypeControl={false}
+					streetViewControl={false}
+					zoomControl={true}
+					mapId={mapId}
+					gestureHandling="greedy"
+				>
+					{mapLoaded && (
+						<>
+							{/* Current location marker using AdvancedMarker */}
+							<AdvancedMarker 
+								position={currentLocation} 
+								title="現在地"
+							>
+								<Pin
+									background="#4285F4"
+									borderColor="#FFFFFF"
+									glyphColor="#FFFFFF"
+									scale={1}
+								/>
+							</AdvancedMarker>
+
+							{/* Store markers using AdvancedMarker */}
+							{stores.map((store) => (
+								<StoreMarkerWithInfoWindow
+									key={store.id}
+									store={store}
+									isSelected={selectedStore?.id === store.id}
+									onSelect={setSelectedStore}
+									onClose={() => setSelectedStore(null)}
+									currentLocation={currentLocation}
+								/>
+							))}
+						</>
+					)}
+				</GoogleMap>
+			</div>
+		</APIProvider>
+	);
+}
+
+// Separate component for store marker with infowindow
+function StoreMarkerWithInfoWindow({
+	store,
+	isSelected,
+	onSelect,
+	onClose,
+	currentLocation
+}: {
+	store: Store;
+	isSelected: boolean;
+	onSelect: (store: Store) => void;
+	onClose: () => void;
+	currentLocation: {lat: number; lng: number};
+}) {
+	const [markerRef, marker] = useAdvancedMarkerRef();
+
+	return (
+		<>
+			<AdvancedMarker
+				ref={markerRef}
+				position={{ lat: store.lat, lng: store.lng }}
+				onClick={() => onSelect(store)}
+				title={store.name}
+			>
+				<Pin
+					background="#DB4437"
+					borderColor="#FFFFFF"
+					glyphColor="#FFFFFF"
+					scale={0.9}
+				/>
+			</AdvancedMarker>
+			
+			{isSelected && marker && (
+				<InfoWindow
+					anchor={marker}
+					maxWidth={250}
+					onCloseClick={onClose}
+					pixelOffset={[0, -5]}
+				>
+					<div className="p-3 bg-white rounded shadow-sm">
+						<div className="border-b pb-2 mb-2">
+							<h2 className="font-bold text-sm">{store.name}</h2>
+						</div>
+						<p className="text-xs text-gray-600 mb-2">{store.address}</p>
+					</div>
+				</InfoWindow>
+			)}
+		</>
+	);
+}
+
+// Mock map component to use when Google Maps API is unavailable
+function MockMap({
+	currentLocation,
+	stores,
+	selectedStore,
+	setSelectedStore,
+	errorMessage,
+	errorDetails,
+}: {
+	currentLocation: { lat: number; lng: number };
+	stores: Store[];
+	selectedStore: Store | null;
+	setSelectedStore: (store: Store | null) => void;
+	errorMessage: string | null;
+	errorDetails: string | null;
+}) {
 	// Calculate boundaries for the mock map display with current location always at the center
 	const mapBoundaries = calculateMapBoundariesWithCenter(
 		currentLocation,
@@ -52,8 +282,24 @@ export default function NearbyStoreMap({
 
 	return (
 		<div className="h-full w-full relative bg-slate-100">
-			{/* Mock map background */}
-			<div className="absolute inset-0 opacity-50">
+			{/* Map error notification */}
+			<div className="absolute top-0 left-0 right-0 bg-yellow-100 text-yellow-800 p-2 text-center text-sm z-30">
+				{errorMessage ||
+					"Google Maps APIが利用できないため、簡易マップを表示しています"}
+				{errorDetails && (
+					<div className="text-xs mt-1 text-yellow-700">{errorDetails}</div>
+				)}
+				{process.env.NODE_ENV === "development" && (
+					<div className="text-xs mt-1">
+						開発者向け: <code>.env.local</code> ファイルに{" "}
+						<code>NEXT_PUBLIC_GOOGLE_MAPS_DEV_API_KEY</code> と{" "}
+						<code>NEXT_PUBLIC_GOOGLE_MAPS_ID</code> を設定してください
+					</div>
+				)}
+			</div>
+
+			{/* Mock map background - adjusted to make room for the larger error message */}
+			<div className="absolute inset-0 opacity-50 mt-16">
 				{/* Grid lines to simulate map */}
 				<div className="grid grid-cols-8 grid-rows-8 h-full w-full">
 					{Array.from({ length: 64 }).map((_, i) => {
@@ -118,13 +364,7 @@ export default function NearbyStoreMap({
 						transform: "translate(-50%, -100%)",
 					}}
 				>
-					<button
-						type="button"
-						className="absolute top-1 right-1 text-xs"
-						onClick={() => setSelectedStore(null)}
-					>
-						✕
-					</button>
+
 					<h3 className="font-bold text-sm">{selectedStore.name}</h3>
 					<p className="text-xs text-gray-600 mt-1">{selectedStore.address}</p>
 					<p className="text-xs text-primary-600 mt-1">
@@ -140,24 +380,8 @@ export default function NearbyStoreMap({
 				</div>
 			)}
 
-			{/* Mock map controls */}
-			<div className="absolute top-2 right-2 bg-white rounded shadow-md p-2 flex flex-col">
-				<button
-					type="button"
-					className="mb-1 w-6 h-6 flex items-center justify-center text-lg"
-				>
-					+
-				</button>
-				<button
-					type="button"
-					className="w-6 h-6 flex items-center justify-center text-lg"
-				>
-					−
-				</button>
-			</div>
-
 			<div className="absolute bottom-2 left-2 bg-white/80 text-xs text-gray-500 px-2 py-1 rounded">
-				Mock Map - 現在地を中心に表示
+				簡易マップ - 現在地を中心に表示
 			</div>
 		</div>
 	);

@@ -30,7 +30,8 @@ export const mockStores: Store[] = [
 		depositFee: "無料",
 		withdrawalFee: "無料",
 		amenities: ["初心者講習あり", "ドリンク飲み放題", "Wi-Fi完備"],
-		imageUrl: "https://plus.unsplash.com/premium_photo-1694004710242-c90943f0c280",
+		imageUrl:
+			"https://plus.unsplash.com/premium_photo-1694004710242-c90943f0c280",
 		description:
 			"渋谷駅から徒歩5分！初心者から上級者まで楽しめるアットホームなポーカースポットです。定期的にトーナメントも開催中！",
 		area: "渋谷",
@@ -71,7 +72,8 @@ export const mockStores: Store[] = [
 		depositFee: "チップ額の3%",
 		withdrawalFee: "チップ額の2%",
 		amenities: ["英語対応", "プライベートテーブル", "高額ゲーム", "予約優先"],
-		imageUrl: "https://plus.unsplash.com/premium_photo-1719017472059-8d1d0ab3cba5",
+		imageUrl:
+			"https://plus.unsplash.com/premium_photo-1719017472059-8d1d0ab3cba5",
 		description:
 			"六本木の中心地に位置する高級ポーカークラブ。国際的な雰囲気で、海外からのゲストも多数。",
 		area: "六本木",
@@ -94,7 +96,8 @@ export const mockStores: Store[] = [
 			"チャージャー完備",
 			"女性割引あり",
 		],
-		imageUrl: "https://plus.unsplash.com/premium_photo-1670007097576-0af87c2dd32e",
+		imageUrl:
+			"https://plus.unsplash.com/premium_photo-1670007097576-0af87c2dd32e",
 		description:
 			"池袋駅東口から徒歩3分。リーズナブルな価格で気軽に楽しめるアットホームな雰囲気が魅力です。",
 		area: "池袋",
