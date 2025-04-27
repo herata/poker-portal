@@ -2,11 +2,11 @@
 
 import {
 	APIProvider,
-	InfoWindow,
 	AdvancedMarker,
 	Map as GoogleMap,
+	InfoWindow,
 	Pin,
-	useAdvancedMarkerRef
+	useAdvancedMarkerRef,
 } from "@vis.gl/react-google-maps";
 import React, { useRef, useState } from "react";
 
@@ -43,7 +43,7 @@ export default function NearbyStoreMap({
 	const [mapError, setMapError] = useState<string | null>(null);
 	const [errorDetails, setErrorDetails] = useState<string | null>(null);
 	const [initialMapSetupDone, setInitialMapSetupDone] = useState(false);
-	
+
 	// Try to use the development API key and Map ID if in development mode
 	const isDev = process.env.NODE_ENV === "development";
 	const apiKey =
@@ -82,7 +82,7 @@ export default function NearbyStoreMap({
 		if (!mapLoaded && event.map) {
 			mapRef.current = event.map;
 			setMapLoaded(true);
-			
+
 			// Only fit bounds and center the first time the map loads
 			if (!initialMapSetupDone && stores.length > 1) {
 				const bounds = new google.maps.LatLngBounds();
@@ -157,10 +157,7 @@ export default function NearbyStoreMap({
 					{mapLoaded && (
 						<>
 							{/* Current location marker using AdvancedMarker */}
-							<AdvancedMarker 
-								position={currentLocation} 
-								title="現在地"
-							>
+							<AdvancedMarker position={currentLocation} title="現在地">
 								<Pin
 									background="#4285F4"
 									borderColor="#FFFFFF"
@@ -194,13 +191,13 @@ function StoreMarkerWithInfoWindow({
 	isSelected,
 	onSelect,
 	onClose,
-	currentLocation
+	currentLocation,
 }: {
 	store: Store;
 	isSelected: boolean;
 	onSelect: (store: Store) => void;
 	onClose: () => void;
-	currentLocation: {lat: number; lng: number};
+	currentLocation: { lat: number; lng: number };
 }) {
 	const [markerRef, marker] = useAdvancedMarkerRef();
 
@@ -219,7 +216,7 @@ function StoreMarkerWithInfoWindow({
 					scale={0.9}
 				/>
 			</AdvancedMarker>
-			
+
 			{isSelected && marker && (
 				<InfoWindow
 					anchor={marker}
@@ -364,7 +361,6 @@ function MockMap({
 						transform: "translate(-50%, -100%)",
 					}}
 				>
-
 					<h3 className="font-bold text-sm">{selectedStore.name}</h3>
 					<p className="text-xs text-gray-600 mt-1">{selectedStore.address}</p>
 					<p className="text-xs text-primary-600 mt-1">

@@ -2,19 +2,10 @@
 
 import NearbyStoreMap from "@/components/NearbyStoreMap";
 import { Button } from "@/components/ui/button";
-import { mockStores } from "@/lib/mockData";
+import { useNearbyStores } from "@/lib/hooks";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-// Convert mockStores data format to what NearbyStoreMap expects
-const mapStores = mockStores.map((store) => ({
-	id: store.id,
-	name: store.name,
-	address: store.address,
-	lat: store.latitude,
-	lng: store.longitude,
-}));
 
 export default function NearbyStoresPage() {
 	const [currentLocation, setCurrentLocation] = useState<{
@@ -23,6 +14,20 @@ export default function NearbyStoresPage() {
 	} | null>(null);
 	const [locationError, setLocationError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+
+	// Fetch nearby stores using TanStack Query
+	const { data, isLoading: storesLoading } = useNearbyStores(
+		currentLocation
+			? {
+					lat: currentLocation.lat,
+					lng: currentLocation.lng,
+					radius: 10, // Within 10km radius
+					limit: 20,
+				}
+			: null,
+	);
+
+	const nearbyStores = data?.items || [];
 
 	useEffect(() => {
 		// Get user's current location
@@ -49,54 +54,21 @@ export default function NearbyStoresPage() {
 		}
 	}, []);
 
-	// Calculate distance between two coordinates in km
-	const calculateDistance = (
-		lat1: number,
-		lon1: number,
-		lat2: number,
-		lon2: number,
-	): number => {
-		const R = 6371; // Radius of the earth in km
-		const dLat = deg2rad(lat2 - lat1);
-		const dLon = deg2rad(lon2 - lon1);
-		const a =
-			Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-			Math.cos(deg2rad(lat1)) *
-				Math.cos(deg2rad(lat2)) *
-				Math.sin(dLon / 2) *
-				Math.sin(dLon / 2);
-		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-		const distance = R * c; // Distance in km
-		return distance;
-	};
-
-	const deg2rad = (deg: number): number => {
-		return deg * (Math.PI / 180);
-	};
-
-	// Sort stores by distance if we have current location
-	const sortedStores = currentLocation
-		? [...mapStores].sort((a, b) => {
-				const distA = calculateDistance(
-					currentLocation.lat,
-					currentLocation.lng,
-					a.lat,
-					a.lng,
-				);
-				const distB = calculateDistance(
-					currentLocation.lat,
-					currentLocation.lng,
-					b.lat,
-					b.lng,
-				);
-				return distA - distB;
-			})
-		: mapStores;
+	// Format store data for map component
+	const mapStores = nearbyStores.map((store) => ({
+		id: store.id,
+		name: store.name,
+		address: store.address,
+		lat: store.location.latitude,
+		lng: store.location.longitude,
+		distance:
+			"distance" in store ? (store.distance as number | string) : undefined, // Use if included in API response
+	}));
 
 	return (
 		<div className="container mx-auto px-4 py-6 md:py-8">
 			<div className="flex items-center mb-6">
-				<h1 className="text-2xl font-bold">近くの会場</h1>
+				<h1 className="text-2xl font-bold">地図で探す</h1>
 			</div>
 
 			{isLoading ? (
@@ -115,7 +87,7 @@ export default function NearbyStoresPage() {
 					<div className="bg-muted rounded-lg overflow-hidden mb-6 h-[40vh] md:h-[50vh]">
 						<NearbyStoreMap
 							currentLocation={{ lat: 35.681, lng: 139.767 }} // Default to Tokyo when error
-							stores={sortedStores}
+							stores={mapStores}
 						/>
 					</div>
 				</>
@@ -124,54 +96,73 @@ export default function NearbyStoresPage() {
 					/* Map Container - Only show when location is successfully fetched */
 					<div className="bg-muted rounded-lg overflow-hidden mb-6 h-[40vh] md:h-[50vh]">
 						<NearbyStoreMap
-							currentLocation={currentLocation} // Safe access as it's checked before rendering
-							stores={sortedStores}
+							currentLocation={currentLocation}
+							stores={mapStores}
 						/>
 					</div>
 				)
 			)}
 
-			{/* Store List - Always show except when loading */}
-			{!isLoading && (
-				<div className="mt-8">
-					<h2 className="text-xl font-semibold mb-4">近くの会場一覧</h2>
-					<div className="space-y-3">
-						{sortedStores.map((store) => {
-							// Calculate distance if we have current location
-							const distance = currentLocation
-								? calculateDistance(
-										currentLocation.lat,
-										currentLocation.lng,
-										store.lat,
-										store.lng,
-									)
-								: null;
+			{/* Store List - Loading State */}
+			{!isLoading && storesLoading && (
+				<div className="flex flex-col items-center justify-center py-8">
+					<Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+					<p className="text-sm text-muted-foreground">データ読み込み中...</p>
+				</div>
+			)}
 
-							return (
-								<div
-									key={store.id}
-									className="border rounded-lg p-4 hover:bg-muted/50 transition"
-								>
-									<div className="flex justify-between">
-										<div>
-											<h3 className="font-medium">{store.name}</h3>
-											<p className="text-sm text-muted-foreground mt-1">
-												{store.address}
-											</p>
-											{distance !== null && (
-												<p className="text-xs text-primary mt-1">
-													現在地から約{distance.toFixed(1)}km
+			{/* Store List - Results */}
+			{!isLoading && !storesLoading && (
+				<div className="mt-8">
+					<h2 className="text-xl font-semibold mb-4">一覧</h2>
+					{nearbyStores.length > 0 ? (
+						<div className="space-y-3">
+							{nearbyStores.map((store) => {
+								// Use distance property if returned from API
+								const distance =
+									"distance" in store
+										? (store.distance as number | string)
+										: undefined;
+
+								return (
+									<div
+										key={store.id}
+										className="border rounded-lg p-4 hover:bg-muted/50 transition"
+									>
+										<div className="flex justify-between">
+											<div>
+												<h3 className="font-medium">{store.name}</h3>
+												<p className="text-sm text-muted-foreground mt-1">
+													{store.address}
 												</p>
-											)}
+												{distance !== undefined && (
+													<p className="text-xs text-primary mt-1">
+														現在地から約
+														{typeof distance === "number"
+															? distance.toFixed(1)
+															: distance}
+														km
+													</p>
+												)}
+											</div>
+											<Link href={`/stores/${store.id}`}>
+												<Button size="sm">詳細を見る</Button>
+											</Link>
 										</div>
-										<Link href={`/stores/${store.id}`}>
-											<Button size="sm">詳細を見る</Button>
-										</Link>
 									</div>
-								</div>
-							);
-						})}
-					</div>
+								);
+							})}
+						</div>
+					) : (
+						<div className="text-center py-8 bg-muted rounded-lg">
+							<p className="text-muted-foreground">
+								近くに見つかりませんでした
+							</p>
+							<p className="text-sm text-muted-foreground mt-1">
+								検索範囲を広げるか、別の場所をお試しください
+							</p>
+						</div>
+					)}
 				</div>
 			)}
 		</div>

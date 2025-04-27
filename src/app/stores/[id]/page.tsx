@@ -12,8 +12,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { useVisitedStores } from "@/lib/hooks";
-import { type Store, getStoreById } from "@/lib/mockData";
+import { useFavoriteStores, useStoreById } from "@/lib/hooks";
 import {
 	ArrowLeft,
 	CheckCircle,
@@ -33,54 +32,37 @@ export default function StoreDetailPage() {
 	const router = useRouter();
 	const { id } = params;
 
-	const [store, setStore] = useState<Store | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
 	const [isClient, setIsClient] = useState(false);
+	const { includes: isFavorite, toggleId: toggleFavorite } =
+		useFavoriteStores();
 
-	const { isVisited, toggleVisited } = useVisitedStores();
+	// Fetch data using TanStack Query
+	const { data, isLoading, error } = useStoreById(id);
 
+	// Verify client-side rendering
 	useEffect(() => {
 		setIsClient(true);
+	}, []);
 
-		if (id) {
-			try {
-				const fetchedStore = getStoreById(id as string);
-
-				if (!fetchedStore) {
-					console.error(`Store with id ${id} not found.`);
-					setStore(null);
-				} else {
-					setStore(fetchedStore);
-				}
-			} catch (error) {
-				console.error("Failed to fetch store data:", error);
-				setStore(null);
-			} finally {
-				setIsLoading(false);
-			}
-		} else {
-			console.error("ID parameter is missing.");
-			setIsLoading(false);
-		}
-	}, [id]);
-
-	const visited = isClient && store ? isVisited(store.id) : false;
+	// Get store data
+	const store = data?.store;
+	const favorite = isClient && store ? isFavorite(store.id) : false;
 
 	if (isLoading) {
 		return (
 			<div className="container mx-auto px-4 py-6 md:py-8 text-center">
-				読み込み中...
+				Loading...
 			</div>
 		);
 	}
 
-	if (!store) {
+	if (error || !store) {
 		return (
 			<div className="container mx-auto px-4 py-6 md:py-8 text-center">
-				指定された会場が見つかりませんでした。
+				Store not found.
 				<div className="mt-4">
 					<Link href="/stores">
-						<Button variant="outline">会場一覧に戻る</Button>
+						<Button variant="outline">Back to store list</Button>
 					</Link>
 				</div>
 			</div>
@@ -98,7 +80,7 @@ export default function StoreDetailPage() {
 						className="gap-1 pl-0 hover:pl-2 transition-all -ml-2"
 					>
 						<ArrowLeft className="h-4 w-4" />
-						<span className="md:inline hidden">会場一覧に戻る</span>
+						<span className="md:inline hidden">一覧に戻る</span>
 						<span className="inline md:hidden">戻る</span>
 					</Button>
 				</Link>
@@ -110,15 +92,15 @@ export default function StoreDetailPage() {
 					<h1 className="text-2xl font-bold mb-2">{store.name}</h1>
 					{isClient && (
 						<Button
-							variant={visited ? "default" : "outline"}
+							variant={favorite ? "default" : "outline"}
 							size="sm"
 							className={`gap-1 transition-colors ${
-								visited ? "bg-green-600 hover:bg-green-700 text-white" : ""
+								favorite ? "bg-green-600 hover:bg-green-700 text-white" : ""
 							}`}
-							onClick={() => toggleVisited(store.id)}
+							onClick={() => toggleFavorite(store.id)}
 						>
 							<CheckCircle className="h-4 w-4" />
-							{visited ? "訪問済み" : "訪問する"}
+							{favorite ? "お気に入り済み" : "お気に入り"}
 						</Button>
 					)}
 				</div>
@@ -157,7 +139,7 @@ export default function StoreDetailPage() {
 				</div>
 				<div className="flex items-center gap-1 flex-shrink-0">
 					<CreditCard className="h-4 w-4 text-muted-foreground" />
-					<span className="text-sm">{store.entryFee || "情報なし"}</span>
+					<span className="text-sm">{store.fees.entryFee || "情報なし"}</span>
 				</div>
 			</div>
 
@@ -174,15 +156,15 @@ export default function StoreDetailPage() {
 							</div>
 							{isClient && (
 								<Button
-									variant={visited ? "default" : "outline"}
+									variant={favorite ? "default" : "outline"}
 									size="sm"
 									className={`gap-1 transition-colors ${
-										visited ? "bg-green-600 hover:bg-green-700 text-white" : ""
+										favorite ? "bg-green-600 hover:bg-green-700 text-white" : ""
 									}`}
-									onClick={() => toggleVisited(store.id)}
+									onClick={() => toggleFavorite(store.id)}
 								>
 									<CheckCircle className="h-4 w-4" />
-									{visited ? "訪問済み" : "訪問する"}
+									{favorite ? "お気に入り済み" : "お気に入り"}
 								</Button>
 							)}
 						</div>
@@ -248,26 +230,43 @@ export default function StoreDetailPage() {
 												{" "}
 												エントリーフィー{" "}
 											</TableCell>
-											<TableCell>{store.entryFee || "未定"}</TableCell>
+											<TableCell>{store.fees.entryFee || "未定"}</TableCell>
 										</TableRow>
 										<TableRow>
 											<TableCell className="font-medium">
 												{" "}
 												チップレート{" "}
 											</TableCell>
-											<TableCell>{store.chipRate || "未定"}</TableCell>
+											<TableCell>
+												{store.fees.chipRates.map((rate) => (
+													<div key={rate.description}>{rate.description}</div>
+												))}
+											</TableCell>
 										</TableRow>
 										<TableRow>
 											<TableCell className="font-medium">入金手数料</TableCell>
-											<TableCell>{store.depositFee || "未定"}</TableCell>
+											<TableCell>
+												{store.fees.depositFees.map((fee) => (
+													<div key={fee.description}>{fee.description}</div>
+												))}
+											</TableCell>
 										</TableRow>
 										<TableRow>
 											<TableCell className="font-medium">出金手数料</TableCell>
-											<TableCell>{store.withdrawalFee || "未定"}</TableCell>
+											<TableCell>
+												{store.fees.withdrawalFees.map((fee) => (
+													<div key={fee.description}>{fee.description}</div>
+												))}
+											</TableCell>
 										</TableRow>
 									</TableBody>
 								</Table>
 							</div>
+							{store.fees.feeNotes && (
+								<p className="text-sm text-muted-foreground mt-4">
+									{store.fees.feeNotes}
+								</p>
+							)}
 						</CardContent>
 					</Card>
 
@@ -330,9 +329,10 @@ export default function StoreDetailPage() {
 								<div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center">
 									<p className="mb-1 text-sm">地図表示エリア</p>
 									<p className="text-xs">住所: {store.address}</p>
-									{store.latitude && store.longitude && (
+									{store.location && (
 										<p className="text-xs mt-1">
-											座標: {store.latitude}, {store.longitude}
+											座標: {store.location.latitude},{" "}
+											{store.location.longitude}
 										</p>
 									)}
 									<Button

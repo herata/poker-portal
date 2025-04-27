@@ -1,16 +1,39 @@
+"use client";
+
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAreas, useStores } from "@/lib/hooks";
 import {
 	ChevronRight,
 	Clock,
 	CreditCard,
+	Loader2,
 	MapPin,
 	Search,
 	Users,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+	// Using TanStack Query to fetch area data
+	const { data: areasData, isLoading: areasLoading } = useAreas();
+
+	// Fetching recommended stores (sorted by highest rating or newest)
+	const { data: storesData, isLoading: storesLoading } = useStores({
+		limit: 4,
+		sort: "chipRate",
+		order: "asc",
+	});
+
+	// Popular areas (sorted by number of stores)
+	const popularAreas = areasData?.areas?.slice(0, 4) || [];
+	const storeCountByArea = areasData?.storeCountByArea || {};
+
+	// Recommended stores
+	const recommendedStores = storesData?.items || [];
+
 	return (
 		<div className="container mx-auto px-4 py-6 md:py-8">
 			{/* Hero Section */}
@@ -39,35 +62,94 @@ export default function Home() {
 				</div>
 			</section>
 
-			{/* Popular Areas - Mobile Only */}
-			<section className="md:hidden mb-8">
-				<h2 className="text-xl font-semibold mb-4">人気エリア</h2>
-				<div className="grid grid-cols-2 gap-3">
-					<Link href="/stores?area=渋谷">
-						<div className="bg-muted/50 hover:bg-muted transition-colors rounded-lg p-4 flex justify-between items-center">
-							<span>渋谷</span>
-							<ChevronRight className="h-4 w-4 text-muted-foreground" />
-						</div>
-					</Link>
-					<Link href="/stores?area=新宿">
-						<div className="bg-muted/50 hover:bg-muted transition-colors rounded-lg p-4 flex justify-between items-center">
-							<span>新宿</span>
-							<ChevronRight className="h-4 w-4 text-muted-foreground" />
-						</div>
-					</Link>
-					<Link href="/stores?area=池袋">
-						<div className="bg-muted/50 hover:bg-muted transition-colors rounded-lg p-4 flex justify-between items-center">
-							<span>池袋</span>
-							<ChevronRight className="h-4 w-4 text-muted-foreground" />
-						</div>
-					</Link>
-					<Link href="/stores?area=六本木">
-						<div className="bg-muted/50 hover:bg-muted transition-colors rounded-lg p-4 flex justify-between items-center">
-							<span>六本木</span>
-							<ChevronRight className="h-4 w-4 text-muted-foreground" />
-						</div>
+			{/* Popular Areas */}
+			<section className="mb-8">
+				<div className="flex items-center justify-between mb-4">
+					<h2 className="text-xl font-semibold">人気エリア</h2>
+					<Link href="/stores">
+						<Button variant="ghost" size="sm" className="text-sm">
+							すべて見る
+							<ChevronRight className="ml-1 h-4 w-4" />
+						</Button>
 					</Link>
 				</div>
+
+				{areasLoading ? (
+					<div className="flex items-center justify-center py-12">
+						<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+					</div>
+				) : (
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+						{popularAreas.map((area) => (
+							<Link href={`/stores?area=${area}`} key={area}>
+								<div className="bg-muted/50 hover:bg-muted transition-colors rounded-lg p-4 flex justify-between items-center">
+									<div>
+										<span>{area}</span>
+										{storeCountByArea[area] && (
+											<span className="text-xs text-muted-foreground ml-2">
+												({storeCountByArea[area]}件)
+											</span>
+										)}
+									</div>
+									<ChevronRight className="h-4 w-4 text-muted-foreground" />
+								</div>
+							</Link>
+						))}
+					</div>
+				)}
+			</section>
+
+			{/* Recommended Stores - New Section */}
+			<section className="py-8">
+				<div className="flex items-center justify-between mb-6">
+					<h2 className="text-xl font-semibold">おすすめの会場</h2>
+					<Link href="/stores">
+						<Button variant="ghost" size="sm" className="text-sm">
+							もっと見る
+							<ChevronRight className="ml-1 h-4 w-4" />
+						</Button>
+					</Link>
+				</div>
+
+				{storesLoading ? (
+					<div className="flex items-center justify-center py-12">
+						<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+					</div>
+				) : (
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+						{recommendedStores.map((store) => (
+							<Link
+								href={`/stores/${store.id}`}
+								key={store.id}
+								className="block"
+							>
+								<Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
+									<div>
+										<AspectRatio ratio={16 / 9} className="bg-muted">
+											{store.imageUrl && (
+												<img
+													src={store.imageUrl}
+													alt={store.name}
+													className="object-cover w-full h-full"
+												/>
+											)}
+										</AspectRatio>
+									</div>
+									<CardContent className="pt-4">
+										<h3 className="font-semibold line-clamp-1">{store.name}</h3>
+										<p className="text-sm text-muted-foreground line-clamp-1 mt-1">
+											{store.address}
+										</p>
+										<p className="text-xs text-muted-foreground mt-2 flex items-center">
+											<CreditCard className="h-3 w-3 mr-1" />
+											{store.fees.entryFee}
+										</p>
+									</CardContent>
+								</Card>
+							</Link>
+						))}
+					</div>
+				)}
 			</section>
 
 			{/* Features Section */}
@@ -148,8 +230,8 @@ export default function Home() {
 				</div>
 			</section>
 
-			{/* Latest News - Mobile Only */}
-			<section className="md:hidden py-8">
+			{/* Latest News */}
+			<section className="py-8">
 				<div className="flex items-center justify-between mb-4">
 					<h2 className="text-xl font-semibold">最新情報</h2>
 					<Button variant="ghost" size="sm" className="text-sm">
