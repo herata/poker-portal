@@ -130,141 +130,295 @@ src/
 
 ## バックエンドアーキテクチャ
 
-### DynamoDBスキーマ設計
+### Cloudflare D1 リレーショナルデータベーススキーマ設計
 
-PokerPortalでは、以下のDynamoDBテーブルを使用してデータを管理します。
+PokerPortalでは、以下のCloudflare D1テーブルを使用してデータを管理します。
 
-#### Storesテーブル
+#### storesテーブル
 
 会場情報を管理するメインテーブルです。
 
-```javascript
-{
-  id: string,               // プライマリキー (UUID)
-  name: string,             // 会場名
-  description: string,      // 会場の説明
-  address: string,          // 住所
-  area: string,             // エリア（東京、大阪など）
-  subArea: string,          // サブエリア（新宿、梅田など）
-  coordinates: {            // 位置情報
-    latitude: number,
-    longitude: number
-  },
-  hours: string,            // 営業時間
-  holidays: string[],       // 定休日
-  contact: {                // 連絡先
-    phone: string,
-    email: string,
-    website: string,
-    twitter: string,
-    instagram: string
-  },
-  fees: {                   // 料金情報
-    entryFee: number,       // 入場料
-    membershipFee: number,  // 会員費
-    chipRates: [            // チップレート（BB単価）
-      {
-        bbAmount: number,   // BB数量（例：100）
-        pricePerBB: number  // BB単価（例：100円）
-      }
-    ],
-    discounts: [            // 割引情報
-      {
-        name: string,       // 割引名（例：女性割引）
-        description: string // 割引詳細
-      }
-    ]
-  },
-  amenities: string[],      // アメニティ（Wi-Fi、フードメニューなど）
-  games: [                  // 開催ゲーム
-    {
-      type: string,         // ゲームタイプ（キャッシュ、トーナメント）
-      name: string,         // ゲーム名
-      description: string,  // 説明
-      schedule: string,     // 開催スケジュール
-      buyIn: number,        // バイイン（トーナメントの場合）
-      guarantee: number     // 保証賞金（トーナメントの場合）
-    }
-  ],
-  imageUrls: string[],      // 画像URL
-  mainImageUrl: string,     // メイン画像URL
-  rating: number,           // 平均評価（5段階）
-  reviewCount: number,      // レビュー数
-  createdAt: string,        // 作成日時（ISO形式）
-  updatedAt: string,        // 更新日時（ISO形式）
-  isVerified: boolean       // 公式確認済みかどうか
-}
+```sql
+CREATE TABLE stores (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  address TEXT NOT NULL,
+  area TEXT NOT NULL,
+  sub_area TEXT,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  hours TEXT,
+  is_verified BOOLEAN DEFAULT false,
+  main_image_url TEXT,
+  rating REAL DEFAULT 0.0,
+  review_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- エリアとサブエリアによる検索を高速化するためのインデックス
+CREATE INDEX idx_stores_area ON stores(area);
+CREATE INDEX idx_stores_sub_area ON stores(sub_area);
+-- 評価によるソートを高速化するためのインデックス
+CREATE INDEX idx_stores_rating ON stores(rating);
 ```
 
-#### Reviewsテーブル
+#### store_contactsテーブル
 
-ユーザーによる会場レビューを管理するテーブルです。
+会場の連絡先情報を管理するテーブルです。
 
-```javascript
-{
-  id: string,               // プライマリキー (UUID)
-  storeId: string,          // 会場ID（GSIで索引）
-  userId: string,           // ユーザーID
-  rating: number,           // 評価（5段階）
-  comment: string,          // レビューコメント
-  visitDate: string,        // 訪問日（ISO形式）
-  createdAt: string,        // 作成日時（ISO形式）
-  updatedAt: string         // 更新日時（ISO形式）
-}
+```sql
+CREATE TABLE store_contacts (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  website TEXT,
+  twitter TEXT,
+  instagram TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_store_contacts_store_id ON store_contacts(store_id);
 ```
 
-#### Usersテーブル
+#### store_feesテーブル
+
+会場の料金情報を管理するテーブルです。
+
+```sql
+CREATE TABLE store_fees (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  entry_fee INTEGER,
+  membership_fee INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_store_fees_store_id ON store_fees(store_id);
+```
+
+#### chip_ratesテーブル
+
+チップレート（BB単価）情報を管理するテーブルです。
+
+```sql
+CREATE TABLE chip_rates (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  bb_amount INTEGER NOT NULL,
+  price_per_bb INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_chip_rates_store_id ON chip_rates(store_id);
+```
+
+#### discountsテーブル
+
+割引情報を管理するテーブルです。
+
+```sql
+CREATE TABLE discounts (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_discounts_store_id ON discounts(store_id);
+```
+
+#### holidaysテーブル
+
+会場の定休日情報を管理するテーブルです。
+
+```sql
+CREATE TABLE holidays (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  day_of_week INTEGER,
+  specific_date TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_holidays_store_id ON holidays(store_id);
+```
+
+#### amenitiesテーブル
+
+アメニティ情報を管理するテーブルです。
+
+```sql
+CREATE TABLE amenities (
+  id TEXT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### store_amenitiesテーブル
+
+会場とアメニティの関連付けを管理する中間テーブルです。
+
+```sql
+CREATE TABLE store_amenities (
+  store_id TEXT NOT NULL,
+  amenity_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (store_id, amenity_id),
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+  FOREIGN KEY (amenity_id) REFERENCES amenities(id) ON DELETE CASCADE
+);
+```
+
+#### gamesテーブル
+
+会場で開催されるゲーム情報を管理するテーブルです。
+
+```sql
+CREATE TABLE games (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  type TEXT NOT NULL, -- キャッシュ、トーナメントなど
+  name TEXT NOT NULL,
+  description TEXT,
+  schedule TEXT,
+  buy_in INTEGER,
+  guarantee INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_games_store_id ON games(store_id);
+CREATE INDEX idx_games_type ON games(type);
+```
+
+#### store_imagesテーブル
+
+会場の画像URLを管理するテーブルです。
+
+```sql
+CREATE TABLE store_images (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_store_images_store_id ON store_images(store_id);
+```
+
+#### usersテーブル
 
 ユーザー情報を管理するテーブルです。
 
-```javascript
-{
-  id: string,               // プライマリキー (UUID)
-  email: string,            // メールアドレス
-  name: string,             // ユーザー名
-  favorites: string[],      // お気に入り会場ID
-  visitedStores: string[],  // 訪問済み会場ID
-  createdAt: string,        // 作成日時（ISO形式）
-  updatedAt: string         // 更新日時（ISO形式）
-}
+```sql
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_email ON users(email);
 ```
 
-#### Eventsテーブル
+#### user_favoritesテーブル
+
+ユーザーのお気に入り会場を管理する中間テーブルです。
+
+```sql
+CREATE TABLE user_favorites (
+  user_id TEXT NOT NULL,
+  store_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, store_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+```
+
+#### user_visited_storesテーブル
+
+ユーザーの訪問済み会場を管理する中間テーブルです。
+
+```sql
+CREATE TABLE user_visited_stores (
+  user_id TEXT NOT NULL,
+  store_id TEXT NOT NULL,
+  visit_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, store_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+```
+
+#### reviewsテーブル
+
+ユーザーによる会場レビューを管理するテーブルです。
+
+```sql
+CREATE TABLE reviews (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  rating INTEGER NOT NULL, -- 1から5までの整数
+  comment TEXT,
+  visit_date TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_reviews_store_id ON reviews(store_id);
+CREATE INDEX idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX idx_reviews_rating ON reviews(rating);
+```
+
+#### eventsテーブル
 
 ポーカーイベント情報を管理するテーブルです。
 
-```javascript
-{
-  id: string,               // プライマリキー (UUID)
-  storeId: string,          // 会場ID（GSIで索引）
-  name: string,             // イベント名
-  description: string,      // イベント説明
-  startDate: string,        // 開始日時（ISO形式）
-  endDate: string,          // 終了日時（ISO形式）
-  buyIn: number,            // バイイン金額
-  guarantee: number,        // 保証賞金額
-  imageUrl: string,         // イベント画像URL
-  capacity: number,         // 定員
-  registeredCount: number,  // 参加登録者数
-  createdAt: string,        // 作成日時（ISO形式）
-  updatedAt: string         // 更新日時（ISO形式）
-}
+```sql
+CREATE TABLE events (
+  id TEXT PRIMARY KEY,
+  store_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  start_date TIMESTAMP NOT NULL,
+  end_date TIMESTAMP NOT NULL,
+  buy_in INTEGER,
+  guarantee INTEGER,
+  image_url TEXT,
+  capacity INTEGER,
+  registered_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_events_store_id ON events(store_id);
+CREATE INDEX idx_events_start_date ON events(start_date);
 ```
-
-### グローバルセカンダリインデックス（GSI）
-
-#### Storesテーブル
-- `area-index`: エリアでの検索用（Partition Key: area）
-- `amenities-index`: アメニティでの検索用（Partition Key: amenities）
-- `rating-index`: 評価での並び替え用（Partition Key: rating）
-
-#### Reviewsテーブル
-- `storeId-index`: 店舗IDでのレビュー検索用（Partition Key: storeId）
-- `userId-index`: ユーザーIDでのレビュー検索用（Partition Key: userId）
-
-#### Eventsテーブル
-- `storeId-index`: 店舗IDでのイベント検索用（Partition Key: storeId）
-- `startDate-index`: 開始日でのイベント検索用（Partition Key: startDate）
 
 ### APIインターフェース
 
