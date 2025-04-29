@@ -2,22 +2,18 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  debug: process.env.NODE_ENV === "development", // 開発環境ではデバッグ情報を表示
-  providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID ?? "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
-    }),
-  ],
-  callbacks: {
-    async session({ session, token }) {
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-  },
+	debug: process.env.NODE_ENV === "development",
+	providers: [Google],
+	callbacks: {
+		async jwt({ token, user, account }) {
+			if (user && account?.id_token) {
+				token.idToken = account?.id_token;
+			}
+			return token;
+		},
+		async session({ token, session }) {
+			session.idToken = token.idToken;
+			return session;
+		},
+	},
 });

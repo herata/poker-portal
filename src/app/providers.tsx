@@ -19,9 +19,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-            <SessionProvider>
-            {children}
-            </SessionProvider>
-        </QueryClientProvider>
+			<SessionProvider>{children}</SessionProvider>
+		</QueryClientProvider>
 	);
 }

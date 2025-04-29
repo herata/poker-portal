@@ -14,7 +14,6 @@ import {
 	Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export default function Home() {
 	// Using TanStack Query to fetch area data
