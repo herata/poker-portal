@@ -18,6 +18,8 @@ import { BookmarkCheck, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+export const runtime = 'edge';
+
 interface Store {
 	id: string;
 	name: string;

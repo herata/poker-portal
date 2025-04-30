@@ -24,6 +24,8 @@ import { CheckCircle, Filter, Loader2, Search, SortDesc } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+export const runtime = 'edge';
+
 // アメニティの選択肢を定義
 const AMENITY_OPTIONS = [
 	"初心者歓迎",

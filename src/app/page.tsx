@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+export const runtime = "edge";
+
 export default function Home() {
 	// Using TanStack Query to fetch area data
 	const { data: areasData, isLoading: areasLoading } = useAreas();
