@@ -19,12 +19,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useAreas, useFavoriteStores, useStores } from "@/lib/hooks";
+import { useAreas, useFavoriteStoresApi, useStores } from "@/lib/hooks";
 import { CheckCircle, Filter, Loader2, Search, SortDesc } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 // アメニティの選択肢を定義
 const AMENITY_OPTIONS = [
@@ -58,7 +58,7 @@ export default function StoresPage() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedArea, setSelectedArea] = useState("all");
 	const [showFilter, setShowFilter] = useState(false);
-	const { value: visitedStores } = useFavoriteStores();
+	const { favorites } = useFavoriteStoresApi();
 	const [mounted, setMounted] = useState(false);
 
 	// 追加フィルター用のstate
@@ -438,7 +438,8 @@ export default function StoresPage() {
 			{!isLoading && (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 					{stores.map((store) => {
-						const isVisited = mounted && visitedStores.includes(store.id);
+						const isFavorite =
+							mounted && favorites.some((fav) => fav.id === store.id);
 
 						return (
 							<Link
@@ -448,11 +449,11 @@ export default function StoresPage() {
 							>
 								<Card className="h-full hover:shadow-lg transition-shadow">
 									<CardHeader className="pb-3 relative">
-										{isVisited && (
+										{isFavorite && (
 											<div className="absolute top-2 right-2">
 												<Badge variant="default" className="bg-green-600">
 													<CheckCircle className="h-3 w-3 mr-1" />
-													訪問済み
+													お気に入り
 												</Badge>
 											</div>
 										)}

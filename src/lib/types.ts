@@ -99,3 +99,37 @@ export interface NearbyParams {
 	sort?: string;
 	nextToken?: string;
 }
+
+// StorePreview interface from API specification
+export interface StorePreview {
+	id: string;
+	name: string;
+	area: string;
+	sub_area?: string;
+	address: string;
+	main_image_url?: string;
+	rating: number;
+	review_count: number;
+	latitude: number;
+	longitude: number;
+}
+
+// Favorites API interfaces
+export interface FavoriteStoresResponse {
+	stores: StorePreview[];
+	total: number;
+	page?: number;
+	limit?: number;
+}
+
+export interface AddFavoriteRequest {
+	store_id: string;
+}
+
+export interface AddFavoriteResponse {
+	success: boolean;
+}
+
+export interface RemoveFavoriteResponse {
+	success: boolean;
+}

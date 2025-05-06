@@ -12,7 +12,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { useFavoriteStores, useStoreById } from "@/lib/hooks";
+import { useFavoriteStoresApi, useStoreById } from "@/lib/hooks";
 import {
 	ArrowLeft,
 	CheckCircle,
@@ -33,8 +33,14 @@ export default function StoreDetailPage() {
 	const { id } = params;
 
 	const [isClient, setIsClient] = useState(false);
-	const { includes: isFavorite, toggleId: toggleFavorite } =
-		useFavoriteStores();
+
+	// Use the new API-based favorites hook
+	const {
+		favorites,
+		addFavorite,
+		removeFavorite,
+		isLoading: isFavoritesLoading,
+	} = useFavoriteStoresApi();
 
 	// Fetch data using TanStack Query
 	const { data, isLoading, error } = useStoreById(id);
@@ -46,7 +52,19 @@ export default function StoreDetailPage() {
 
 	// Get store data
 	const store = data?.store;
-	const favorite = isClient && store ? isFavorite(store.id) : false;
+
+	// Check if this store is in favorites
+	const isFavorite =
+		isClient && store ? favorites.some((fav) => fav.id === store.id) : false;
+
+	// Toggle favorite status
+	const toggleFavorite = (storeId: string) => {
+		if (isFavorite) {
+			removeFavorite(storeId);
+		} else {
+			addFavorite(storeId);
+		}
+	};
 
 	if (isLoading) {
 		return (
@@ -92,15 +110,16 @@ export default function StoreDetailPage() {
 					<h1 className="text-2xl font-bold mb-2">{store.name}</h1>
 					{isClient && (
 						<Button
-							variant={favorite ? "default" : "outline"}
+							variant={isFavorite ? "default" : "outline"}
 							size="sm"
 							className={`gap-1 transition-colors ${
-								favorite ? "bg-green-600 hover:bg-green-700 text-white" : ""
+								isFavorite ? "bg-green-600 hover:bg-green-700 text-white" : ""
 							}`}
 							onClick={() => toggleFavorite(store.id)}
+							disabled={isFavoritesLoading}
 						>
 							<CheckCircle className="h-4 w-4" />
-							{favorite ? "お気に入り済み" : "お気に入り"}
+							{isFavorite ? "お気に入り済み" : "お気に入り"}
 						</Button>
 					)}
 				</div>
@@ -156,15 +175,18 @@ export default function StoreDetailPage() {
 							</div>
 							{isClient && (
 								<Button
-									variant={favorite ? "default" : "outline"}
+									variant={isFavorite ? "default" : "outline"}
 									size="sm"
 									className={`gap-1 transition-colors ${
-										favorite ? "bg-green-600 hover:bg-green-700 text-white" : ""
+										isFavorite
+											? "bg-green-600 hover:bg-green-700 text-white"
+											: ""
 									}`}
 									onClick={() => toggleFavorite(store.id)}
+									disabled={isFavoritesLoading}
 								>
 									<CheckCircle className="h-4 w-4" />
-									{favorite ? "お気に入り済み" : "お気に入り"}
+									{isFavorite ? "お気に入り済み" : "お気に入り"}
 								</Button>
 							)}
 						</div>

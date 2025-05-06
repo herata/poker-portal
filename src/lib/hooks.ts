@@ -1,26 +1,58 @@
-import { useQuery } from "@tanstack/react-query";
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	addFavoriteStore,
 	getAreas,
+	getFavoriteStores,
 	getNearbyStores,
 	getStoreById,
 	getStores,
 	getStoresByArea,
 	getStoresByBBAmount,
 	getStoresInMapBounds,
+	removeFavoriteStore,
 } from "./api";
 import type { BoundsParams, NearbyParams, SearchParams } from "./types";
-import { createLocalStorageStateHook } from "./utils";
 
-// Create local storage hook for favorite stores (now used for both favorite and visited functionality)
-const useFavoriteStoresStorage = createLocalStorageStateHook<string[]>(
-	"favoriteStores",
-	[],
-);
+// Custom hook for favorite stores using the server API
+export function useFavoriteStoresApi() {
+	const queryClient = useQueryClient();
 
-// Custom hook for favorite stores (now used for both favorite and visited functionality)
-export function useFavoriteStores() {
-	// Using the created hook from createLocalStorageStateHook
-	return useFavoriteStoresStorage();
+	// Query to get favorites from API
+	const favoritesQuery = useQuery({
+		queryKey: ["favorites"],
+		queryFn: () => getFavoriteStores(),
+	});
+
+	// Mutation to add a favorite
+	const addFavoriteMutation = useMutation({
+		mutationFn: (storeId: string) => addFavoriteStore(storeId),
+		onSuccess: () => {
+			// Invalidate the favorites query to trigger a refetch
+			queryClient.invalidateQueries({ queryKey: ["favorites"] });
+		},
+	});
+
+	// Mutation to remove a favorite
+	const removeFavoriteMutation = useMutation({
+		mutationFn: (storeId: string) => removeFavoriteStore(storeId),
+		onSuccess: () => {
+			// Invalidate the favorites query to trigger a refetch
+			queryClient.invalidateQueries({ queryKey: ["favorites"] });
+		},
+	});
+
+	return {
+		favorites: favoritesQuery.data?.stores || [],
+		totalCount: favoritesQuery.data?.total || 0,
+		isLoading: favoritesQuery.isLoading,
+		isError: favoritesQuery.isError,
+		addFavorite: addFavoriteMutation.mutate,
+		removeFavorite: removeFavoriteMutation.mutate,
+		isAddingFavorite: addFavoriteMutation.isPending,
+		isRemovingFavorite: removeFavoriteMutation.isPending,
+	};
 }
 
 // Custom hook to get venue list

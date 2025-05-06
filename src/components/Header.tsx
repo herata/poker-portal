@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LogInButton, LogOutButton } from "./AuthButton";
 
 export async function Header() {
-    const session = await auth();
+	const session = await auth();
 	return (
 		<header className="border-b sticky top-0 bg-background/95 backdrop-blur z-10">
 			<div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -36,7 +36,7 @@ export async function Header() {
 						<Heart className="h-4 w-4" />
 						お気に入り
 					</Link>
-                    {session ? <LogOutButton /> : <LogInButton />}
+					{session ? <LogOutButton /> : <LogInButton />}
 				</nav>
 
 				{/* Mobile Navigation Icons */}
@@ -62,7 +62,7 @@ export async function Header() {
 					>
 						<Heart className="h-5 w-5" />
 					</Link>
-                    {session ? <LogOutButton /> : <LogInButton />}
+					{session ? <LogOutButton /> : <LogInButton />}
 				</div>
 			</div>
 		</header>

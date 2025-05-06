@@ -1,10 +1,15 @@
 import { v4 as uuidv4 } from "uuid";
 import type {
+	AddFavoriteRequest,
+	AddFavoriteResponse,
 	ApiResponse,
 	BoundsParams,
+	FavoriteStoresResponse,
 	NearbyParams,
+	RemoveFavoriteResponse,
 	SearchParams,
 	Store,
+	StorePreview,
 } from "./types";
 
 // Define mock data directly in the new format
@@ -474,6 +479,9 @@ export const mockStores: Store[] = [
 	},
 ];
 
+// Mock favorites data storage (simulates database storage)
+export const mockFavorites: string[] = ["1", "3", "5"];
+
 // Areas for filtering
 export const areas = [
 	"渋谷",
@@ -750,5 +758,65 @@ export const mockApi = {
 			items: paginatedStores,
 			nextToken: nextTokenValue,
 		};
+	},
+
+	// ===== Favorites API =====
+
+	// Get user's favorite stores
+	getFavoriteStores: async (): Promise<FavoriteStoresResponse> => {
+		const favoriteStoresList = mockStores
+			.filter((store) => mockFavorites.includes(store.id))
+			.map(
+				(store) =>
+					({
+						id: store.id,
+						name: store.name,
+						area: store.area,
+						sub_area: undefined,
+						address: store.address,
+						main_image_url: store.imageUrl,
+						rating: 4.5, // Mock rating
+						review_count: Math.floor(Math.random() * 50) + 5, // Mock review count
+						latitude: store.location.latitude,
+						longitude: store.location.longitude,
+					}) as StorePreview,
+			);
+
+		return {
+			stores: favoriteStoresList,
+			total: favoriteStoresList.length,
+		};
+	},
+
+	// Add a store to favorites
+	addFavorite: async (
+		request: AddFavoriteRequest,
+	): Promise<AddFavoriteResponse> => {
+		const { store_id } = request;
+
+		// Check if store exists
+		const storeExists = mockStores.some((store) => store.id === store_id);
+		if (!storeExists) {
+			return { success: false };
+		}
+
+		// Check if already in favorites
+		if (!mockFavorites.includes(store_id)) {
+			mockFavorites.push(store_id);
+		}
+
+		return { success: true };
+	},
+
+	// Remove a store from favorites
+	removeFavorite: async (storeId: string): Promise<RemoveFavoriteResponse> => {
+		const index = mockFavorites.indexOf(storeId);
+
+		if (index !== -1) {
+			mockFavorites.splice(index, 1);
+			return { success: true };
+		}
+
+		return { success: false };
 	},
 };

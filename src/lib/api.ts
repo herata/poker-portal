@@ -1,8 +1,12 @@
 import { mockApi } from "./mockData";
 import type {
+	AddFavoriteRequest,
+	AddFavoriteResponse,
 	ApiResponse,
 	BoundsParams,
+	FavoriteStoresResponse,
 	NearbyParams,
+	RemoveFavoriteResponse,
 	SearchParams,
 	Store,
 } from "./types";
@@ -60,4 +64,25 @@ export async function getStoresInMapBounds(
 	params: BoundsParams,
 ): Promise<ApiResponse<Store>> {
 	return await mockApi.getStoresInBounds(params);
+}
+
+// ===== Favorites API functions =====
+
+// Get user's favorite stores
+export async function getFavoriteStores(): Promise<FavoriteStoresResponse> {
+	return await mockApi.getFavoriteStores();
+}
+
+// Add a store to favorites
+export async function addFavoriteStore(
+	storeId: string,
+): Promise<AddFavoriteResponse> {
+	return await mockApi.addFavorite({ store_id: storeId });
+}
+
+// Remove a store from favorites
+export async function removeFavoriteStore(
+	storeId: string,
+): Promise<RemoveFavoriteResponse> {
+	return await mockApi.removeFavorite(storeId);
 }

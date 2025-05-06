@@ -151,15 +151,6 @@ interface RemoveFavoriteResponse {
 }
 ```
 
-### 訪問済み店舗追加
-
-```typescript
-// POST /api/user/visited
-interface AddVisitedRequest {
-  store_id: string;
-  visit_date?: string; // YYYY-MM-DD形式
-}
-
 interface AddVisitedResponse {
   success: boolean;
 }
