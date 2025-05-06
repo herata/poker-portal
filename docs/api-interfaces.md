@@ -151,16 +151,6 @@ interface RemoveFavoriteResponse {
 }
 ```
 
-### 訪問済み店舗一覧取得
-
-```typescript
-// GET /api/user/visited
-interface VisitedStoresResponse {
-  stores: StorePreview[];
-  total: number;
-}
-```
-
 ### 訪問済み店舗追加
 
 ```typescript

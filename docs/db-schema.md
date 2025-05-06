@@ -215,21 +215,6 @@ CREATE TABLE user_favorites (
 );
 ```
 
-## user_visited_storesテーブル
-
-ユーザーの訪問済み会場を管理する中間テーブルです。
-
-```sql
-CREATE TABLE user_visited_stores (
-  user_id TEXT NOT NULL,
-  store_id TEXT NOT NULL,
-  visit_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (user_id, store_id),
-  FOREIGN KEY (user_id) REFERENCES google_users(id) ON DELETE CASCADE,
-  FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
-);
-```
-
 ## reviewsテーブル
 
 ユーザーによる会場レビューを管理するテーブルです。
